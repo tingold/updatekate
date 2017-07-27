@@ -1,0 +1,14 @@
+package: github.com/tingold/updatekate
+import:
+- package: github.com/coreos/pkg
+  version: ~3.0.0
+  subpackages:
+  - flagutil
+- package: k8s.io/apimachinery
+  subpackages:
+  - pkg/apis/meta/v1
+- package: k8s.io/client-go
+  version: ~4.0.0-beta.0
+  subpackages:
+  - kubernetes
+  - rest
