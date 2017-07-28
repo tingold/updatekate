@@ -23,7 +23,7 @@ See docs [here](https://docs.quay.io/guides/notifications.html) for the webhooks
 `/info` which will the deployments json to 
 
 3) When a webhook is received it will check the version of the deployment's container image against the updated tags in 
-the webhook. The code uses the [semantic versioning rules] (http://semver.org/) to evaluate which versions are newer. 
+the webhook. The code uses the [semantic versioning rules](http://semver.org/) to evaluate which versions are newer. 
 For example:
     * `1.0.0` > `0.5.0`
     * `0.0.2-SNAPSHOT` < `0.0.2-SNAPSHOT.2`
@@ -39,3 +39,5 @@ status 10 time (incremental backoff) or until there is at least 1 container avai
 By restricting the image updates to a single repository, updatekate essentially restricts updates to those allowed
 to push to your repo. Of course, by opening listening port it does expose these system to the typical vulnerabilities (DDOS etc).
 Unless needed for debugging the `/info` endpoint should also be disabled   
+
+##Building 
