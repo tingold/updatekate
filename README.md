@@ -48,7 +48,7 @@ Unless needed for debugging the `/info` endpoint should also be disabled
 # get source
 git clone https://github.com/tingold/updatekate.git
 cd update kate 
-# install glide for depencies 
+# install glide for dependencies 
 curl https://glide.sh/get | sh
 glide install
 # build it

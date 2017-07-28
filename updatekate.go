@@ -33,7 +33,7 @@ func main() {
 	deployment := flagSet.String("deployment", "", "The deployment to update")
 	dockerRepo := flagSet.String("repo", "", "The allowed docker repo for updates")
 	webhook := flagSet.String("webhook", "", "A webhook to invoke upon successful update")
-	infoEndpoint := flagSet.Bool("info",true,"Setting to false disables the info endpoint")
+	infoEndpoint := flagSet.Bool("info", true, "Setting to false disables the info endpoint")
 	//baseImage := flag.String("repository","","The name of the repository to allow -- if empty then any repo is allowed")
 	//port := flag.String("port",":8888","The port to listen on")
 	var port = ":8888"
@@ -44,10 +44,9 @@ func main() {
 	}
 	log.Print("Updatekate is starting with config from env:")
 	log.Printf("k8s namespace: %v", *namespace)
-	log.Printf("k8s deployment: %v",*deployment)
-	log.Printf("allowed container repository: %v",*dockerRepo)
-	log.Printf("webhook for successful updates: %v",*webhook)
-
+	log.Printf("k8s deployment: %v", *deployment)
+	log.Printf("allowed container repository: %v", *dockerRepo)
+	log.Printf("webhook for successful updates: %v", *webhook)
 
 	//setup the k8s client config
 	config, err := rest.InClusterConfig()
