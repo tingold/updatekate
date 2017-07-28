@@ -29,10 +29,11 @@ func main() {
 
 	flagSet := flag.NewFlagSet("updatekate", flag.ExitOnError)
 
-	namespace := flag.String("namespace", "ec", "The namespace of the deployment to update")
-	deployment := flag.String("deployment", "ec-deployment", "The deployment to update")
-	dockerRepo := flag.String("repo", "boundlessgeo/geoserver-ec", "The docker repo to watch")
-	webhook := flag.String("webhook", "", "A webhook to invoke upon successful update")
+	namespace := flagSet.String("namespace", "default", "The namespace of the deployment to update")
+	deployment := flagSet.String("deployment", "", "The deployment to update")
+	dockerRepo := flagSet.String("repo", "", "The allowed docker repo for updates")
+	webhook := flagSet.String("webhook", "", "A webhook to invoke upon successful update")
+	infoEndpoint := flagSet.Bool("info",true,"Setting to false disables the info endpoint")
 	//baseImage := flag.String("repository","","The name of the repository to allow -- if empty then any repo is allowed")
 	//port := flag.String("port",":8888","The port to listen on")
 	var port = ":8888"
@@ -41,6 +42,12 @@ func main() {
 	if err := flagutil.SetFlagsFromEnv(flagSet, "UK"); err != nil {
 		log.Fatal()
 	}
+	log.Print("Updatekate is starting with config from env:")
+	log.Printf("k8s namespace: %v", *namespace)
+	log.Printf("k8s deployment: %v",*deployment)
+	log.Printf("allowed container repository: %v",*dockerRepo)
+	log.Printf("webhook for successful updates: %v",*webhook)
+
 
 	//setup the k8s client config
 	config, err := rest.InClusterConfig()
@@ -56,7 +63,9 @@ func main() {
 	k8 := K8Client{clientset: clientset, namespace: *namespace, deployment: *deployment, dockerRepo: *dockerRepo, webhook: *webhook}
 
 	http.HandleFunc("/webhook", k8.updateWebhook)
-	http.HandleFunc("/info", k8.getInfo)
+	if *infoEndpoint {
+		http.HandleFunc("/info", k8.getInfo)
+	}
 	http.ListenAndServe(port, nil)
 }
 
@@ -99,24 +108,24 @@ func (k8 *K8Client) updateWebhook(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Current version of image is %v", currentVersionTag)
 	var newTag string
 	for _, newVer := range qn.UpdatedTags {
-		//we don't want latest tags because K8s won't re-pull them consistently
+
+		tagVer, _ := semver.Make(newVer)
+		log.Printf("Found tag %v", newVer)
+		log.Printf("New major: %v", tagVer.Major)
+		log.Printf("New minor: %v", tagVer.Minor)
+		log.Printf("New path: %v", tagVer.Patch)
+		log.Printf("New build: %v", tagVer.Build)
+		log.Printf("New pre: %v", tagVer.Pre)
+		log.Printf("New version string: %v", tagVer.String())
+
 		if newVer == "latest" {
 			continue
 		}
-
-		tagVer, _ := semver.Make(newVer)
+		//we don't want latest tags because K8s won't re-pull them consistently
 		if currentVersion.LT(tagVer) {
+			log.Printf("Found newer version of image - %v ...applying", newTag)
 			newTag = newVer
-			log.Printf("Found newer version of image - %v", newTag)
-			log.Printf("New major: %v", tagVer.Major)
-			log.Printf("New minor: %v", tagVer.Minor)
-			log.Printf("New path: %v", tagVer.Patch)
-			log.Printf("New build: %v", tagVer.Build)
-			log.Printf("New pre: %v", tagVer.Pre)
-			log.Printf("New version string: %v", tagVer.String())
-
 			go k8.update(newVer)
-
 			break
 		}
 	}
@@ -134,7 +143,7 @@ func (k8 *K8Client) update(newVersion string) {
 		log.Printf("Error fetching deployment: %v", err.Error())
 		return
 	}
-	log.Println("Updating container image to: $v", k8.dockerRepo+":"+newVersion)
+	log.Printf("Updating container image to: %v", k8.dockerRepo+":"+newVersion)
 	result.Spec.Template.Spec.Containers[0].Image = k8.dockerRepo + ":" + newVersion
 	log.Println("Applying update")
 	_, err = k8.clientset.AppsV1beta1().Deployments(k8.namespace).Update(result)
@@ -146,9 +155,12 @@ func (k8 *K8Client) update(newVersion string) {
 	}
 
 	//wait until status is good...
-	var retryCount int
+	retryCount := 0
 	for {
 		retryCount++
+		backoff := 20 * time.Second
+
+		nextTimeout := backoff * time.Duration(retryCount)
 		//if we hit this and have tried 10 times with no success then give up
 		if retryCount == 10 {
 			log.Println("Backoff retry expired before sucessfully updating deployment - webhook will not fire")
@@ -159,13 +171,13 @@ func (k8 *K8Client) update(newVersion string) {
 		if err != nil {
 			//wait an retry...
 			log.Print("Error fetching status...sleeping")
-			time.Sleep(time.Duration(int64(5000 * retryCount)))
+			time.Sleep(nextTimeout)
 			continue
 		}
 		//wait until at least 1 replica is ready
 		if updatedDep.Status.ReadyReplicas == 0 {
 			log.Print("No containers ready...sleeping")
-			time.Sleep(time.Duration(int64(5000 * retryCount)))
+			time.Sleep(nextTimeout)
 			continue
 
 		} else {

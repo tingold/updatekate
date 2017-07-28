@@ -33,7 +33,11 @@ spec:
           value: ec-deployment
         - name: UK_NAMESPACE
           value: ec
-        image: tingold/updatekate:0.0.10
+        - name: UK_WEBHOOK
+          value: http://192.168.1.1/webhook
+        - name: UK_REPO
+          value: quay.io/boundlessgeo/geoserver-ec
+        image: tingold/updatekate:0.0.16
         ports:
         - containerPort: 8888
         securityContext:
