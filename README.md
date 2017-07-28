@@ -1,6 +1,8 @@
 # Updatekate
 A utility the updates a Kubernetes deployment based on a Quay.io webhook. 
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/tingold/updatekate)](https://goreportcard.com/report/github.com/tingold/updatekate)
+
 ## Why
 Updatekate allows a Kubernetes deployment update to be included as part of a CI/CD workflow without  
  `kubectl` needing to be installed on the build box.  This is especially useful for builds directly on Quay or 
@@ -40,4 +42,15 @@ By restricting the image updates to a single repository, updatekate essentially 
 to push to your repo. Of course, by opening listening port it does expose these system to the typical vulnerabilities (DDOS etc).
 Unless needed for debugging the `/info` endpoint should also be disabled   
 
-##Building 
+## Building
+
+```
+# get source
+git clone https://github.com/tingold/updatekate.git
+cd update kate 
+# install glide for depencies 
+curl https://glide.sh/get | sh
+glide install
+# build it
+go build 
+```
